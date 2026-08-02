@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Senior WFM LinkedIn Diagnostic</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy-950:#05070E;
+    --navy-900:#0A0F1D;
+    --navy-800:#111A2C;
+    --navy-700:#19233A;
+    --navy-600:#26314A;
+    --blue-500:#2E6BFF;
+    --blue-400:#5487FF;
+    --blue-300:#9CB8FF;
+    --text-primary:#EDF1F9;
+    --text-secondary:#8E97AE;
+    --text-tertiary:#5C6580;
+    --success:#2FD180;
+    --warning:#FFB020;
+    --danger:#FF6470;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1200px 600px at 15% -10%, rgba(46,107,255,0.14), transparent 60%),
+      radial-gradient(900px 500px at 100% 0%, rgba(46,107,255,0.08), transparent 55%),
+      var(--navy-950);
+    color:var(--text-primary);
+    font-family:'Inter',ui-sans-serif,system-ui,sans-serif;
+    min-height:100vh;
+    line-height:1.5;
+  }
+  .wrap{max-width:840px;margin:0 auto;padding:48px 20px 100px;}
+
+  /* ---------- Header ---------- */
+  .eyebrow{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--blue-300);
+    margin:0 0 14px;
+    display:flex;align-items:center;gap:8px;
+  }
+  .eyebrow::before{content:"";width:16px;height:1px;background:var(--blue-400);display:inline-block;}
+  h1{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:700;
+    font-size:clamp(28px,4.5vw,42px);
+    line-height:1.08;
+    margin:0 0 14px;
+    letter-spacing:-0.01em;
+  }
+  .lede{color:var(--text-secondary);font-size:16px;max-width:560px;margin:0 0 36px;}
+
+  /* ---------- Score Console (sticky) ---------- */
+  .console{
+    position:sticky;top:16px;z-index:50;
+    background:linear-gradient(180deg, rgba(17,26,44,0.92), rgba(10,15,29,0.92));
+    backdrop-filter:blur(10px);
+    border:1px solid var(--navy-600);
+    border-radius:18px;
+    padding:20px 24px;
+    display:flex;align-items:center;gap:22px;
+    margin-bottom:40px;
+    box-shadow:0 20px 40px -20px rgba(0,0,0,0.6);
+  }
+  .gauge{position:relative;width:88px;height:88px;flex:none;}
+  .gauge svg{transform:rotate(-90deg);width:88px;height:88px;}
+  .gauge circle{fill:none;stroke-width:8;}
+  .gauge .track{stroke:var(--navy-700);}
+  .gauge .fill{stroke:var(--blue-500);stroke-linecap:round;transition:stroke-dashoffset 0.5s ease, stroke 0.4s ease;}
+  .gauge-label{
+    position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  }
+  .gauge-pct{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:18px;}
+  .gauge-of{font-size:9px;color:var(--text-tertiary);letter-spacing:0.05em;}
+  .console-mid{flex:1;min-width:0;}
+  .band-name{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:17px;margin:0 0 4px;transition:color 0.3s ease;}
+  .band-desc{font-size:13px;color:var(--text-secondary);margin:0;}
+  .console-count{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    color:var(--text-tertiary);
+    white-space:nowrap;
+    text-align:right;
+  }
+  .console-count b{color:var(--text-primary);}
+
+  /* ---------- Sections ---------- */
+  .section{
+    border:1px solid var(--navy-700);
+    border-radius:16px;
+    background:var(--navy-900);
+    margin-bottom:14px;
+    overflow:hidden;
+  }
+  .section-head{
+    display:flex;align-items:center;gap:16px;
+    padding:20px 22px;
+    cursor:pointer;
+    user-select:none;
+  }
+  .sec-num{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    color:var(--blue-400);
+    border:1px solid var(--navy-600);
+    border-radius:8px;
+    width:34px;height:34px;
+    display:flex;align-items:center;justify-content:center;
+    flex:none;
+  }
+  .sec-title-wrap{flex:1;min-width:0;}
+  .sec-title{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:16px;margin:0 0 2px;}
+  .sec-sub{font-size:12.5px;color:var(--text-tertiary);margin:0;}
+  .sec-score{
+    font-family:'JetBrains Mono',monospace;
+    font-size:13px;
+    color:var(--text-secondary);
+    flex:none;
+  }
+  .chevron{
+    width:18px;height:18px;flex:none;color:var(--text-tertiary);
+    transition:transform 0.25s ease;
+  }
+  .section.open .chevron{transform:rotate(180deg);}
+  .section-body{
+    max-height:0;
+    overflow:hidden;
+    transition:max-height 0.35s ease;
+    border-top:1px solid transparent;
+  }
+  .section.open .section-body{border-top:1px solid var(--navy-700);}
+  .items{padding:6px 22px 18px;}
+  .item{
+    display:flex;gap:12px;
+    padding:12px 0;
+    border-bottom:1px solid var(--navy-800);
+  }
+  .item:last-child{border-bottom:none;}
+  .cb{
+    flex:none;
+    width:20px;height:20px;
+    margin-top:2px;
+    border-radius:6px;
+    border:1.5px solid var(--navy-600);
+    background:var(--navy-800);
+    cursor:pointer;
+    position:relative;
+    appearance:none;-webkit-appearance:none;
+    transition:all 0.15s ease;
+  }
+  .cb:checked{
+    background:var(--blue-500);
+    border-color:var(--blue-500);
+  }
+  .cb:checked::after{
+    content:"";
+    position:absolute;left:6px;top:2px;
+    width:5px;height:10px;
+    border:solid white;
+    border-width:0 2px 2px 0;
+    transform:rotate(45deg);
+  }
+  .item-text{flex:1;}
+  label.item-check{
+    font-size:14.5px;
+    cursor:pointer;
+    display:block;
+    color:var(--text-primary);
+  }
+  .item-help{
+    font-size:12.5px;
+    color:var(--text-tertiary);
+    margin:4px 0 0;
+    line-height:1.45;
+  }
+
+  /* ---------- Results ---------- */
+  .results{
+    margin-top:44px;
+    border:1px solid var(--navy-600);
+    border-radius:18px;
+    padding:28px 26px;
+    background:linear-gradient(180deg, rgba(46,107,255,0.06), transparent 40%), var(--navy-900);
+  }
+  .results h2{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:20px;margin:0 0 4px;
+  }
+  .results p.sub{color:var(--text-secondary);font-size:13.5px;margin:0 0 24px;}
+  .breakdown-row{
+    display:flex;align-items:center;gap:14px;
+    margin-bottom:12px;
+  }
+  .bd-label{
+    width:150px;flex:none;
+    font-size:12.5px;color:var(--text-secondary);
+  }
+  .bd-track{
+    flex:1;height:7px;border-radius:4px;background:var(--navy-700);overflow:hidden;
+  }
+  .bd-fill{
+    height:100%;border-radius:4px;
+    background:linear-gradient(90deg, var(--blue-500), var(--blue-300));
+    transition:width 0.4s ease;
+    width:0%;
+  }
+  .bd-val{
+    width:38px;flex:none;text-align:right;
+    font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-tertiary);
+  }
+  .next-step{
+    margin-top:24px;
+    padding:18px 20px;
+    border-radius:12px;
+    background:var(--navy-800);
+    border:1px solid var(--navy-700);
+    font-size:13.5px;
+    color:var(--text-secondary);
+  }
+  .next-step b{color:var(--text-primary);font-weight:600;}
+
+  footer{
+    margin-top:44px;
+    text-align:center;
+    font-size:11.5px;
+    color:var(--text-tertiary);
+    font-family:'JetBrains Mono',monospace;
+  }
+
+  @media (max-width:520px){
+    .console{flex-wrap:wrap;}
+    .console-count{width:100%;text-align:left;margin-top:6px;}
+    .bd-label{width:110px;font-size:11.5px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="eyebrow">WFM Intelligence &mdash; Profile Diagnostic</p>
+  <h1>The Senior WFM LinkedIn Diagnostic</h1>
+  <p class="lede">Thirty-six checks across every section recruiters actually look at, built specifically for workforce management profiles. Tick what's already true. Watch where the gaps are.</p>
+
+  <div class="console">
+    <div class="gauge">
+      <svg viewBox="0 0 88 88">
+        <circle class="track" cx="44" cy="44" r="38"></circle>
+        <circle id="gaugeFill" class="fill" cx="44" cy="44" r="38" stroke-dasharray="238.76" stroke-dashoffset="238.76"></circle>
+      </svg>
+      <div class="gauge-label">
+        <span class="gauge-pct" id="gaugePct">0%</span>
+        <span class="gauge-of" id="gaugeOf">0 / 36</span>
+      </div>
+    </div>
+    <div class="console-mid">
+      <p class="band-name" id="bandName">Let's get started</p>
+      <p class="band-desc" id="bandDesc">Work through each section below, in order.</p>
+    </div>
+    <div class="console-count">
+      <span id="topCount"><b>0</b> of 36 checked</span>
+    </div>
+  </div>
+
+  <div id="sections"></div>
+
+  <div class="results">
+    <h2>Where the gaps are</h2>
+    <p class="sub">The lowest bars below are costing you the most, since they're usually the first three things a recruiter's eye lands on.</p>
+    <div id="breakdown"></div>
+    <div class="next-step" id="nextStep">Complete the checklist above to get a personalised read on what to fix first.</div>
+  </div>
+
+  <footer>WFM INTELLIGENCE &nbsp;·&nbsp; BUILT FOR SENIOR WFM &amp; RTM PROFESSIONALS</footer>
+</div>
+
+<script>
+const DATA = [
+  {
+    title: "Photo & Banner",
+    sub: "The first two seconds",
+    items: [
+      { t: "Photo is a clear, professional headshot with good lighting, not a cropped group photo or casual selfie.", h: "Recruiters in BPO and contact centre operations scan hundreds of profiles a day. A blurry or informal photo gets skipped before anything else is read." },
+      { t: "Photo was taken within the last two to three years and reflects how you currently look.", h: "" },
+      { t: "Banner image is custom, not the LinkedIn default blue pattern.", h: "" },
+      { t: "Banner reflects operations, data, or workforce management, rather than an unrelated stock image.", h: "A simple graphic referencing forecasting, scheduling, or your specialism signals expertise before anyone reads a word." },
+    ]
+  },
+  {
+    title: "Headline",
+    sub: "What shows up in every search result",
+    items: [
+      { t: "Headline goes beyond your job title alone.", h: "\"Senior WFM Analyst\" tells a recruiter almost nothing. Naming your specialism (forecasting, capacity planning, real-time management) tells them exactly where you fit." },
+      { t: "Includes a scope marker: team size, agent count, number of sites, or region covered.", h: "e.g. \"EMEA, 500+ agents\" or \"multi-site capacity planning\"." },
+      { t: "Uses the keywords recruiters actually search: WFM, workforce management, forecasting, scheduling, RTA, capacity planning.", h: "LinkedIn's recruiter search is keyword-driven. If the words aren't in your headline, you don't surface." },
+      { t: "Avoids empty descriptors with no substance, like \"passionate\", \"guru\", or \"ninja\".", h: "" },
+      { t: "Reads cleanly on mobile, without getting cut off mid-sentence.", h: "Aim for under roughly 220 characters." },
+    ]
+  },
+  {
+    title: "About Section",
+    sub: "Your narrative, in your own words",
+    items: [
+      { t: "Opens with something other than \"I am a WFM professional with X years of experience.\"", h: "That opening line is the single most repeated sentence on WFM LinkedIn. It gives a recruiter no reason to keep reading." },
+      { t: "Tells a clear arc: where you started, what you specialise in now.", h: "" },
+      { t: "Includes two to three achievements with real numbers.", h: "Forecast accuracy improved, shrinkage reduced, headcount cost saved, SLA held under pressure. Numbers are what separate this from every other About section." },
+      { t: "States the scope of your experience: industries, team size, sites, or agent volume managed.", h: "" },
+      { t: "Ends with a clear signal of what you're open to, or how to reach you.", h: "" },
+      { t: "Is broken into short paragraphs rather than one dense block of text.", h: "" },
+    ]
+  },
+  {
+    title: "Featured Section",
+    sub: "Proof, not just claims",
+    items: [
+      { t: "Featured section is populated, not empty.", h: "An empty Featured section is a missed slot, not a neutral one." },
+      { t: "Includes at least one piece of real proof: a certification, article, presentation, or project.", h: "" },
+      { t: "Content is current and directly relevant to WFM.", h: "" },
+      { t: "Where possible, includes something visual: a dashboard screenshot, a case study, or a deck excerpt.", h: "" },
+    ]
+  },
+  {
+    title: "Experience",
+    sub: "Outcomes, not duties",
+    items: [
+      { t: "Each role opens with a short line of context on the team or company scope, not just the job title.", h: "" },
+      { t: "Bullet points describe outcomes rather than duties.", h: "\"Built a forecast model that cut error by 12%\" beats \"Responsible for forecasting\" every time." },
+      { t: "At least one quantified metric appears per role.", h: "SLA, shrinkage, forecast accuracy, cost savings, headcount, or AHT." },
+      { t: "Formatting is consistent across roles: same bullet style, same tense, same structure.", h: "" },
+      { t: "No unexplained gaps in the timeline.", h: "" },
+    ]
+  },
+  {
+    title: "Skills",
+    sub: "What you're searchable for",
+    items: [
+      { t: "Your top three pinned skills are specific, not generic \"Workforce Management\" or \"Forecasting\" alone.", h: "" },
+      { t: "Skills list includes both tools (NICE, Verint, Genesys, Excel, Power BI) and functional skills (RTM, scheduling, capacity planning).", h: "" },
+      { t: "Top skills have real endorsements, not zero.", h: "" },
+      { t: "Outdated or irrelevant skills have been removed.", h: "" },
+    ]
+  },
+  {
+    title: "Recommendations",
+    sub: "Third-party proof",
+    items: [
+      { t: "You have at least two to three recommendations.", h: "" },
+      { t: "At least one is from a manager or stakeholder, not only peers.", h: "" },
+      { t: "Recommendations mention specific results or projects rather than generic praise.", h: "" },
+      { t: "You've given roughly as many recommendations as you've received.", h: "Reciprocity is noticed, and it's an easy one to fix in a single afternoon." },
+    ]
+  },
+  {
+    title: "Activity & Settings",
+    sub: "What happens after they click",
+    items: [
+      { t: "You've posted or commented within the last 30 days.", h: "A profile with no recent activity reads as inactive, even if it's well written." },
+      { t: "Your visible activity reflects WFM expertise, not only unrelated content.", h: "" },
+      { t: "\"Open to work\" or equivalent settings are switched on appropriately if you're job searching.", h: "" },
+      { t: "Contact info and email are current and visible.", h: "" },
+    ]
+  },
+];
+
+const sectionsEl = document.getElementById("sections");
+let totalItems = 0;
+DATA.forEach(s => totalItems += s.items.length);
+
+DATA.forEach((section, si) => {
+  const el = document.createElement("div");
+  el.className = "section" + (si === 0 ? " open" : "");
+  el.innerHTML = `
+    <div class="section-head" data-toggle="${si}">
+      <div class="sec-num">${String(si+1).padStart(2,'0')}</div>
+      <div class="sec-title-wrap">
+        <p class="sec-title">${section.title}</p>
+        <p class="sec-sub">${section.sub}</p>
+      </div>
+      <div class="sec-score" id="secScore-${si}">0/${section.items.length}</div>
+      <svg class="chevron" viewBox="0 0 20 20" fill="none"><path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="section-body">
+      <div class="items">
+        ${section.items.map((item, ii) => `
+          <div class="item">
+            <input type="checkbox" class="cb" id="c-${si}-${ii}" data-section="${si}">
+            <div class="item-text">
+              <label class="item-check" for="c-${si}-${ii}">${item.t}</label>
+              ${item.h ? `<p class="item-help">${item.h}</p>` : ``}
+            </div>
+          </div>
+        `).join("")}
+      </div>
+    </div>
+  `;
+  sectionsEl.appendChild(el);
+});
+
+// accordion toggle
+sectionsEl.addEventListener("click", (e) => {
+  const head = e.target.closest(".section-head");
+  if (!head) return;
+  const section = head.closest(".section");
+  const body = section.querySelector(".section-body");
+  const isOpen = section.classList.contains("open");
+  if (isOpen) {
+    body.style.maxHeight = null;
+    section.classList.remove("open");
+  } else {
+    section.classList.add("open");
+    body.style.maxHeight = body.scrollHeight + "px";
+  }
+});
+
+// build breakdown bars
+const breakdownEl = document.getElementById("breakdown");
+DATA.forEach((section, si) => {
+  const row = document.createElement("div");
+  row.className = "breakdown-row";
+  row.innerHTML = `
+    <div class="bd-label">${section.title}</div>
+    <div class="bd-track"><div class="bd-fill" id="bdFill-${si}"></div></div>
+    <div class="bd-val" id="bdVal-${si}">0/${section.items.length}</div>
+  `;
+  breakdownEl.appendChild(row);
+});
+
+const CIRC = 238.76;
+const gaugeFill = document.getElementById("gaugeFill");
+const gaugePct = document.getElementById("gaugePct");
+const gaugeOf = document.getElementById("gaugeOf");
+const bandName = document.getElementById("bandName");
+const bandDesc = document.getElementById("bandDesc");
+const topCount = document.getElementById("topCount");
+const nextStep = document.getElementById("nextStep");
+
+function bands(pct) {
+  if (pct === 0) return { name: "Let's get started", desc: "Work through each section below, in order.", color: "var(--text-secondary)" };
+  if (pct < 40) return { name: "Foundational gaps", desc: "The core building blocks aren't in place yet.", color: "var(--danger)" };
+  if (pct < 66) return { name: "Getting there", desc: "Good raw material, but it reads unfinished.", color: "var(--warning)" };
+  if (pct < 86) return { name: "Recruiter ready", desc: "Solid profile. A few sections need sharpening.", color: "var(--blue-400)" };
+  return { name: "Recruiter magnet", desc: "This profile is doing its job.", color: "var(--success)" };
+}
+
+function recalc() {
+  let totalChecked = 0;
+  const sectionCounts = DATA.map(() => 0);
+
+  DATA.forEach((section, si) => {
+    let count = 0;
+    section.items.forEach((item, ii) => {
+      const cb = document.getElementById(`c-${si}-${ii}`);
+      if (cb.checked) count++;
+    });
+    sectionCounts[si] = count;
+    totalChecked += count;
+
+    document.getElementById(`secScore-${si}`).textContent = `${count}/${section.items.length}`;
+    document.getElementById(`bdVal-${si}`).textContent = `${count}/${section.items.length}`;
+    const pctSec = (count / section.items.length) * 100;
+    document.getElementById(`bdFill-${si}`).style.width = pctSec + "%";
+  });
+
+  const pct = Math.round((totalChecked / totalItems) * 100);
+  const offset = CIRC - (CIRC * pct / 100);
+  gaugeFill.style.strokeDashoffset = offset;
+  gaugePct.textContent = pct + "%";
+  gaugeOf.textContent = `${totalChecked} / ${totalItems}`;
+  topCount.innerHTML = `<b>${totalChecked}</b> of ${totalItems} checked`;
+
+  const b = bands(pct);
+  bandName.textContent = b.name;
+  bandName.style.color = b.color;
+  bandDesc.textContent = b.desc;
+  gaugeFill.style.stroke = b.color === "var(--text-secondary)" ? "var(--blue-500)" : b.color;
+
+  // weakest section for the next-step note
+  if (totalChecked > 0) {
+    let weakestIdx = 0;
+    let weakestPct = 2;
+    sectionCounts.forEach((count, si) => {
+      const p = count / DATA[si].items.length;
+      if (p < weakestPct) { weakestPct = p; weakestIdx = si; }
+    });
+    if (pct >= 86) {
+      nextStep.innerHTML = `<b>Every section is close to complete.</b> The next lever isn't the profile itself, it's what happens once someone reads it: how you handle the interview conversation that follows.`;
+    } else {
+      nextStep.innerHTML = `<b>${DATA[weakestIdx].title} is your weakest section right now.</b> Start there before touching anything else. It's usually the fastest fix and it changes how the rest of the profile reads.`;
+    }
+  } else {
+    nextStep.innerHTML = `Complete the checklist above to get a personalised read on what to fix first.`;
+  }
+}
+
+sectionsEl.addEventListener("change", (e) => {
+  if (e.target.classList.contains("cb")) recalc();
+});
+
+recalc();
+</script>
+</body>
+</html>
