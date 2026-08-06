@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Senior WFM LinkedIn Analyzer &mdash; Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy-950:#05070E;
+    --navy-900:#0A0F1D;
+    --navy-800:#111A2C;
+    --navy-700:#19233A;
+    --navy-600:#26314A;
+    --blue-500:#2E6BFF;
+    --blue-400:#5487FF;
+    --blue-300:#9CB8FF;
+    --text-primary:#EDF1F9;
+    --text-secondary:#8E97AE;
+    --text-tertiary:#5C6580;
+    --success:#2FD180;
+    --warning:#FFB020;
+    --danger:#FF6470;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1200px 600px at 15% -10%, rgba(46,107,255,0.14), transparent 60%),
+      radial-gradient(900px 500px at 100% 0%, rgba(46,107,255,0.08), transparent 55%),
+      var(--navy-950);
+    color:var(--text-primary);
+    font-family:'Inter',ui-sans-serif,system-ui,sans-serif;
+    min-height:100vh;
+    line-height:1.55;
+  }
+  .wrap{max-width:760px;margin:0 auto;padding:48px 20px 100px;}
+
+  .eyebrow{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;letter-spacing:0.12em;text-transform:uppercase;
+    color:var(--blue-300);margin:0 0 14px;display:flex;align-items:center;gap:8px;
+  }
+  .eyebrow::before{content:"";width:16px;height:1px;background:var(--blue-400);display:inline-block;}
+  .proto-badge{
+    font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:0.05em;
+    color:var(--warning);border:1px solid rgba(255,176,32,0.3);background:rgba(255,176,32,0.08);
+    padding:3px 8px;border-radius:20px;margin-left:2px;
+  }
+  h1{
+    font-family:'Space Grotesk',sans-serif;font-weight:700;
+    font-size:clamp(26px,4.2vw,38px);line-height:1.1;margin:0 0 14px;letter-spacing:-0.01em;
+  }
+  .lede{color:var(--text-secondary);font-size:15px;max-width:600px;margin:0 0 8px;}
+  .privacy-note{
+    display:flex;gap:10px;align-items:flex-start;
+    font-size:12.5px;color:var(--text-tertiary);
+    margin:20px 0 36px;padding:12px 14px;
+    border:1px solid var(--navy-700);border-radius:10px;background:var(--navy-900);
+  }
+  .privacy-note svg{flex:none;margin-top:1px;color:var(--blue-400);}
+
+  .field{margin-bottom:22px;}
+  .field label{
+    display:block;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:14px;margin-bottom:4px;
+  }
+  .field .hint{font-size:12px;color:var(--text-tertiary);margin:0 0 10px;}
+  .field input[type=text], .field textarea{
+    width:100%;
+    background:var(--navy-900);
+    border:1px solid var(--navy-600);
+    border-radius:10px;
+    padding:12px 14px;
+    color:var(--text-primary);
+    font-family:'Inter',sans-serif;
+    font-size:14px;
+    resize:vertical;
+    transition:border-color 0.15s ease;
+  }
+  .field input[type=text]:focus, .field textarea:focus{
+    outline:none;border-color:var(--blue-400);
+  }
+  .field textarea{min-height:110px;}
+
+  .analyze-btn{
+    display:flex;align-items:center;justify-content:center;gap:10px;
+    width:100%;
+    background:linear-gradient(135deg, var(--blue-500), var(--blue-400));
+    color:white;
+    border:none;border-radius:12px;
+    padding:15px 20px;
+    font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:15px;
+    cursor:pointer;
+    transition:opacity 0.15s ease, transform 0.1s ease;
+    margin-top:8px;
+  }
+  .analyze-btn:hover{opacity:0.92;}
+  .analyze-btn:active{transform:scale(0.99);}
+  .analyze-btn:disabled{opacity:0.5;cursor:not-allowed;}
+
+  .spinner{
+    width:16px;height:16px;border-radius:50%;
+    border:2px solid rgba(255,255,255,0.35);
+    border-top-color:white;
+    animation:spin 0.7s linear infinite;
+    display:none;
+  }
+  .analyze-btn.loading .spinner{display:inline-block;}
+  .analyze-btn.loading .btn-label{display:none;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  .error-box{
+    display:none;
+    margin-top:16px;padding:14px 16px;border-radius:10px;
+    background:rgba(255,100,112,0.08);border:1px solid rgba(255,100,112,0.3);
+    color:var(--danger);font-size:13.5px;
+  }
+
+  /* ---------- Results ---------- */
+  #results{display:none;margin-top:48px;}
+  .overall-card{
+    display:flex;align-items:center;gap:22px;
+    border:1px solid var(--navy-600);border-radius:18px;
+    padding:22px 24px;margin-bottom:28px;
+    background:linear-gradient(180deg, rgba(46,107,255,0.08), transparent 50%), var(--navy-900);
+  }
+  .gauge{position:relative;width:78px;height:78px;flex:none;}
+  .gauge svg{transform:rotate(-90deg);width:78px;height:78px;}
+  .gauge circle{fill:none;stroke-width:7;}
+  .gauge .track{stroke:var(--navy-700);}
+  .gauge .fill{stroke:var(--blue-500);stroke-linecap:round;transition:stroke-dashoffset 0.6s ease, stroke 0.3s ease;}
+  .gauge-label{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;}
+  .gauge-pct{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:17px;}
+  .overall-mid{flex:1;min-width:0;}
+  .overall-band{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:17px;margin:0 0 4px;}
+  .overall-summary{font-size:13.5px;color:var(--text-secondary);margin:0;}
+
+  .sec-card{
+    border:1px solid var(--navy-700);border-radius:16px;
+    background:var(--navy-900);padding:20px 22px;margin-bottom:16px;
+  }
+  .sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px;}
+  .sec-title{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:15.5px;margin:0;}
+  .sec-score{
+    font-family:'JetBrains Mono',monospace;font-size:12.5px;
+    padding:3px 10px;border-radius:20px;flex:none;
+  }
+  .sec-score.score-low{color:var(--danger);background:rgba(255,100,112,0.1);}
+  .sec-score.score-mid{color:var(--warning);background:rgba(255,176,32,0.1);}
+  .sec-score.score-high{color:var(--success);background:rgba(47,209,128,0.1);}
+
+  .sec-block{margin-bottom:12px;}
+  .sec-block:last-child{margin-bottom:0;}
+  .sec-block .block-label{
+    font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:0.06em;text-transform:uppercase;
+    color:var(--text-tertiary);margin:0 0 5px;
+  }
+  .sec-block p{margin:0;font-size:14px;color:var(--text-secondary);}
+  .rewrite-box{
+    background:var(--navy-800);border:1px solid rgba(84,135,255,0.3);border-radius:10px;
+    padding:12px 14px;font-size:13.5px;color:var(--text-primary);
+    font-family:'Space Grotesk',sans-serif;
+  }
+
+  .next-step{
+    margin-top:8px;
+    padding:18px 20px;border-radius:12px;
+    background:var(--navy-800);border:1px solid var(--navy-700);
+    font-size:13.5px;color:var(--text-secondary);
+  }
+  .next-step b{color:var(--text-primary);}
+
+  footer{margin-top:44px;text-align:center;font-size:11.5px;color:var(--text-tertiary);font-family:'JetBrains Mono',monospace;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="eyebrow">WFM Intelligence <span class="proto-badge">PROTOTYPE</span></p>
+  <h1>The Senior WFM LinkedIn Analyzer</h1>
+  <p class="lede">Paste your own headline, About section, and one role from your experience. No login, no scraping, nothing pulled from LinkedIn directly. Get back specific, WFM-context feedback in under a minute.</p>
+
+  <div class="privacy-note">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 2L4 6v6c0 5 3.5 9 8 10 4.5-1 8-5 8-10V6l-8-4z" stroke="currentColor" stroke-width="1.6"/></svg>
+    <div>Nothing you paste here is stored or sent anywhere except directly to the analysis. Close this tab and it's gone.</div>
+  </div>
+
+  <div class="field">
+    <label for="accessCodeInput">Access code</label>
+    <p class="hint">Sent to you by email after purchase.</p>
+    <input type="text" id="accessCodeInput" placeholder="e.g. WFM-A1B2">
+  </div>
+
+  <div class="field">
+    <label for="headlineInput">Headline</label>
+    <p class="hint">Copy this exactly as it appears under your name on LinkedIn.</p>
+    <input type="text" id="headlineInput" placeholder="e.g. Senior Workforce Management Analyst">
+  </div>
+
+  <div class="field">
+    <label for="aboutInput">About section</label>
+    <p class="hint">Paste the full thing, opening line included.</p>
+    <textarea id="aboutInput" placeholder="Paste your About section here..."></textarea>
+  </div>
+
+  <div class="field">
+    <label for="experienceInput">Experience &mdash; one role</label>
+    <p class="hint">Your current or most relevant role. Title, company context, and bullet points.</p>
+    <textarea id="experienceInput" placeholder="Paste one role from your Experience section here..."></textarea>
+  </div>
+
+  <button class="analyze-btn" id="analyzeBtn">
+    <span class="spinner"></span>
+    <span class="btn-label">Analyze my profile</span>
+  </button>
+
+  <div class="error-box" id="errorBox"></div>
+
+  <div id="results">
+    <div class="overall-card">
+      <div class="gauge">
+        <svg viewBox="0 0 78 78">
+          <circle class="track" cx="39" cy="39" r="33"></circle>
+          <circle id="gaugeFill" class="fill" cx="39" cy="39" r="33" stroke-dasharray="207.3" stroke-dashoffset="207.3"></circle>
+        </svg>
+        <div class="gauge-label"><span class="gauge-pct" id="gaugePct">0%</span></div>
+      </div>
+      <div class="overall-mid">
+        <p class="overall-band" id="overallBand">&nbsp;</p>
+        <p class="overall-summary" id="overallSummary">&nbsp;</p>
+      </div>
+    </div>
+
+    <div class="sec-card">
+      <div class="sec-head">
+        <p class="sec-title">Headline</p>
+        <span class="sec-score" id="headlineScoreTag">0/10</span>
+      </div>
+      <div class="sec-block"><p class="block-label">What's working</p><p id="headlineGood"></p></div>
+      <div class="sec-block"><p class="block-label">What's weak</p><p id="headlineWeak"></p></div>
+      <div class="sec-block"><p class="block-label">Suggested rewrite</p><div class="rewrite-box" id="headlineRewrite"></div></div>
+    </div>
+
+    <div class="sec-card">
+      <div class="sec-head">
+        <p class="sec-title">About section</p>
+        <span class="sec-score" id="aboutScoreTag">0/10</span>
+      </div>
+      <div class="sec-block"><p class="block-label">What's working</p><p id="aboutGood"></p></div>
+      <div class="sec-block"><p class="block-label">What's weak</p><p id="aboutWeak"></p></div>
+      <div class="sec-block"><p class="block-label">Suggested opening rewrite</p><div class="rewrite-box" id="aboutRewrite"></div></div>
+    </div>
+
+    <div class="sec-card">
+      <div class="sec-head">
+        <p class="sec-title">Experience</p>
+        <span class="sec-score" id="expScoreTag">0/10</span>
+      </div>
+      <div class="sec-block"><p class="block-label">What's working</p><p id="expGood"></p></div>
+      <div class="sec-block"><p class="block-label">What's weak</p><p id="expWeak"></p></div>
+      <div class="sec-block"><p class="block-label">Suggested bullet rewrite</p><div class="rewrite-box" id="expRewrite"></div></div>
+    </div>
+
+    <div class="next-step" id="nextStep"></div>
+  </div>
+
+  <footer>WFM INTELLIGENCE &nbsp;&middot;&nbsp; PROTOTYPE, NOT THE FINAL PRODUCT</footer>
+</div>
+
+<script>
+const btn = document.getElementById('analyzeBtn');
+const errorBox = document.getElementById('errorBox');
+const results = document.getElementById('results');
+
+function scoreClass(score, max) {
+  const pct = score / max;
+  if (pct < 0.5) return 'score-low';
+  if (pct < 0.75) return 'score-mid';
+  return 'score-high';
+}
+
+function setLoading(isLoading) {
+  btn.disabled = isLoading;
+  btn.classList.toggle('loading', isLoading);
+}
+
+function showError(msg) {
+  errorBox.textContent = msg;
+  errorBox.style.display = 'block';
+}
+
+function hideError() {
+  errorBox.style.display = 'none';
+}
+
+// Replace this with your actual deployed Worker URL once you've deployed it.
+// It will look something like: https://wfm-analyzer.YOUR-SUBDOMAIN.workers.dev
+const WORKER_URL = "https://icy-recipe-0f74wfm-analyzer.luisa-i-s-goncalves.workers.dev";
+
+async function analyze() {
+  const accessCode = document.getElementById('accessCodeInput').value.trim();
+  const headline = document.getElementById('headlineInput').value.trim();
+  const about = document.getElementById('aboutInput').value.trim();
+  const experience = document.getElementById('experienceInput').value.trim();
+
+  if (!accessCode) {
+    showError('Enter your access code, sent to you after purchase, before analyzing.');
+    return;
+  }
+
+  if (!headline || !about || !experience) {
+    showError('Fill in all three fields, headline, About, and one Experience entry, before analyzing.');
+    return;
+  }
+
+  hideError();
+  results.style.display = 'none';
+  setLoading(true);
+
+  try {
+    const response = await fetch(WORKER_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ accessCode, headline, about, experience })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || `Request failed with status ${response.status}.`);
+    }
+
+    renderResults(data);
+  } catch (err) {
+    console.error(err);
+    showError(err.message || "Something went wrong running the analysis. Try again.");
+  } finally {
+    setLoading(false);
+  }
+}
+
+function renderResults(r) {
+  const CIRC = 207.3;
+  const pct = Math.max(0, Math.min(100, r.overall_score));
+  const offset = CIRC - (CIRC * pct / 100);
+  document.getElementById('gaugeFill').style.strokeDashoffset = offset;
+  document.getElementById('gaugePct').textContent = pct + '%';
+  document.getElementById('overallBand').textContent = r.overall_band;
+  document.getElementById('overallSummary').textContent = r.overall_summary;
+
+  const sections = [
+    { key: 'headline', data: r.headline },
+    { key: 'about', data: r.about },
+    { key: 'exp', data: r.experience }
+  ];
+
+  sections.forEach(s => {
+    const tag = document.getElementById(s.key + 'ScoreTag');
+    tag.textContent = s.data.score + '/10';
+    tag.className = 'sec-score ' + scoreClass(s.data.score, 10);
+    document.getElementById(s.key + 'Good').textContent = s.data.good;
+    document.getElementById(s.key + 'Weak').textContent = s.data.weak;
+    document.getElementById(s.key + 'Rewrite').textContent = s.data.rewrite;
+  });
+
+  document.getElementById('nextStep').innerHTML = `<b>Start here:</b> ${r.next_step}`;
+  results.style.display = 'block';
+  results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+btn.addEventListener('click', analyze);
+</script>
+</body>
+</html>
